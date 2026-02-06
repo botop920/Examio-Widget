@@ -1,5 +1,5 @@
 (function() {
-    const VALIDATION_ENDPOINT = 'https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/validate-widget';
+    const VALIDATION_ENDPOINT = 'https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/smooth-worker';
     
     // পেজ এবং DOM পুরোপুরি তৈরি হওয়ার অপেক্ষা করা
     const init = () => {
