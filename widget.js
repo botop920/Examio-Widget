@@ -1,6 +1,9 @@
 (function() {
     // Configuration
-    // REPLACE THIS WITH YOUR DEPLOYED SUPABASE EDGE FUNCTION URL
+    // Update this to your project URL. Using 'smooth-worker' based on your prompt.
+    // Ensure YOUR_SUPABASE_PROJECT_ID is replaced with your actual project ref (e.g. 'abcdefghijklm')
+    // If you are running locally, use localhost. If deployed, use your project url.
+    // Example: 'https://PROJECT_REF.supabase.co/functions/v1/smooth-worker'
     const VALIDATION_ENDPOINT = 'https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/smooth-worker';
     
     // DOM Elements
@@ -87,23 +90,39 @@
             userAgent: navigator.userAgent
         };
 
+        // Debug Log
+        console.log("EXAMiO Widget: Sending payload", payload);
+
         fetch(VALIDATION_ENDPOINT, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
             body: JSON.stringify(payload)
         })
-        .then(response => response.json())
+        .then(async response => {
+            const isJson = response.headers.get('content-type')?.includes('application/json');
+            const data = isJson ? await response.json() : null;
+
+            if (!response.ok) {
+                // Handle non-200 responses
+                const errorMsg = (data && data.error) || response.statusText || 'Validation Failed';
+                throw new Error(errorMsg);
+            }
+
+            return data;
+        })
         .then(data => {
-            if (data.success && data.examUrl) {
-                // The examUrl from the server now includes the &token=... parameter
+            if (data && data.success && data.examUrl) {
                 renderIframe(data.examUrl);
             } else {
-                renderError(data.error || 'Access Denied');
+                renderError((data && data.error) || 'Access Denied');
             }
         })
         .catch(err => {
-            console.error(err);
-            renderError('Connection Error: Unable to load widget.');
+            console.error('EXAMiO Widget Error:', err);
+            renderError(`Connection Error: ${err.message}`);
         });
     }
 
@@ -121,7 +140,7 @@
             <div class="examio-error">
                 <div>
                     <strong>EXAMiO Error</strong><br/>
-                    ${message}
+                    <span style="font-size: 0.9em; opacity: 0.8">${message}</span>
                 </div>
             </div>
         `;
