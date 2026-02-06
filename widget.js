@@ -2,7 +2,7 @@
 (function() {
     // Configuration
     // REPLACE THIS WITH YOUR DEPLOYED SUPABASE EDGE FUNCTION URL
-    const VALIDATION_ENDPOINT = 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co/functions/v1/validate-widget';
+    const VALIDATION_ENDPOINT = 'https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/validate-widget';
     
     // DOM Elements
     const container = document.getElementById('examio-widget');
