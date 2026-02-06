@@ -1,5 +1,5 @@
 (function() {
-    const VALIDATION_ENDPOINT = 'https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/smooth-worker';
+    const VALIDATION_ENDPOINT = 'https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/smooth-worker?key=pk_live_12345sample&domain=demo-ed-test.vercel.app';
     const container = document.getElementById('examio-widget');
     if (!container) return;
 
