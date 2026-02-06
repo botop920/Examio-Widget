@@ -1,5 +1,5 @@
 (function() {
-    const VALIDATION_ENDPOINT = 'https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/smooth-worker/';
+    const VALIDATION_ENDPOINT = 'https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/smooth-worker';
     const container = document.getElementById('examio-widget');
     if (!container) return;
 
