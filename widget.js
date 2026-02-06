@@ -1,146 +1,85 @@
-
 (function() {
-    // Configuration
-    // REPLACE THIS WITH YOUR DEPLOYED SUPABASE EDGE FUNCTION URL
     const VALIDATION_ENDPOINT = 'https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/validate-widget';
     
-    // DOM Elements
-    const container = document.getElementById('examio-widget');
-    if (!container) {
-        console.error('EXAMiO Widget: Container element #examio-widget not found.');
-        return;
-    }
-
-    const apiKey = container.getAttribute('data-key');
-    if (!apiKey) {
-        renderError('Configuration Error: Missing data-key attribute.');
-        return;
-    }
-
-    // Styles
-    const style = document.createElement('style');
-    style.textContent = `
-        #examio-widget {
-            width: 100%;
-            min-height: 600px;
-            position: relative;
-            background: #f8f9fa;
-            border-radius: 8px;
-            overflow: hidden;
-            font-family: sans-serif;
+    // পেজ এবং DOM পুরোপুরি তৈরি হওয়ার অপেক্ষা করা
+    const init = () => {
+        const container = document.getElementById('examio-widget');
+        
+        if (!container) {
+            console.warn('EXAMiO Widget: #examio-widget element ti ekhono pawa jayni. Re-trying...');
+            return;
         }
-        .examio-loading {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            color: #666;
-        }
-        .examio-spinner {
-            width: 30px;
-            height: 30px;
-            border: 3px solid #e2e8f0;
-            border-top: 3px solid #0071E3;
-            border-radius: 50%;
-            animation: examio-spin 1s linear infinite;
-            margin-bottom: 15px;
-        }
-        .examio-error {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #e53e3e;
-            padding: 20px;
-            text-align: center;
-            background: #fff5f5;
-        }
-        @keyframes examio-spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        #examio-frame {
-            width: 100%;
-            height: 100%;
-            min-height: 600px;
-            border: none;
-            display: none; /* Hidden until loaded */
-        }
-    `;
-    document.head.appendChild(style);
 
-    // Initial Loading State
-    renderLoading();
+        const apiKey = container.getAttribute('data-key');
+        if (!apiKey) {
+            container.innerHTML = "<div style='color:red; padding:20px; border:1px solid red;'>Configuration Error: Missing data-key attribute.</div>";
+            return;
+        }
 
-    // Validate and Load
-    validateAndLoad();
+        // স্টাইল ইনজেক্ট করা
+        injectStyles();
+        
+        // লোডিং দেখানো
+        container.innerHTML = `
+            <div class="examio-loading" style="display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 300px;">
+                <div class="examio-spinner"></div>
+                <span style="margin-top: 10px; font-family: sans-serif;">Examio Loading...</span>
+            </div>
+        `;
 
-    function validateAndLoad() {
-        const payload = {
-            key: apiKey,
-            domain: window.location.hostname,
-            userAgent: navigator.userAgent
-        };
+        // ভ্যালিডেশন কল
+        validateAndLoad(container, apiKey);
+    };
 
+    function validateAndLoad(container, apiKey) {
         fetch(VALIDATION_ENDPOINT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                key: apiKey,
+                domain: window.location.hostname
+            })
         })
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) throw new Error('Network response was not ok');
+            return response.json();
+        })
         .then(data => {
             if (data.success && data.examUrl) {
-                renderIframe(data.examUrl);
+                container.innerHTML = `<iframe id="examio-frame" src="${data.examUrl}" style="width:100%; height:600px; border:none;" allow="camera; microphone"></iframe>`;
             } else {
-                renderError(data.error || 'Access Denied');
+                showError(container, data.error || 'Access Denied');
             }
         })
         .catch(err => {
-            console.error(err);
-            renderError('Connection Error: Unable to load widget.');
+            console.error("EXAMio Fetch Error:", err);
+            showError(container, 'Connection Error: Unable to contact validation server.');
         });
     }
 
-    function renderLoading() {
-        container.innerHTML = `
-            <div class="examio-loading">
-                <div class="examio-spinner"></div>
-                <span>Loading Exam...</span>
-            </div>
-        `;
+    function showError(container, msg) {
+        container.innerHTML = `<div style="color: #e53e3e; padding: 20px; text-align: center; background: #fff5f5; border-radius: 8px; font-family: sans-serif;"><strong>EXAMiO Error</strong><br/>${msg}</div>`;
     }
 
-    function renderError(message) {
-        container.innerHTML = `
-            <div class="examio-error">
-                <div>
-                    <strong>EXAMiO Error</strong><br/>
-                    ${message}
-                </div>
-            </div>
+    function injectStyles() {
+        if (document.getElementById('examio-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'examio-styles';
+        style.textContent = `
+            .examio-spinner {
+                width: 40px; height: 40px;
+                border: 4px solid #f3f3f3; border-top: 4px solid #3498db;
+                border-radius: 50%; animation: spin 1s linear infinite;
+            }
+            @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         `;
+        document.head.appendChild(style);
     }
 
-    function renderIframe(url) {
-        container.innerHTML = ''; // Clear loading
-        
-        const iframe = document.createElement('iframe');
-        iframe.id = 'examio-frame';
-        iframe.src = url;
-        iframe.setAttribute('allow', 'camera; microphone'); // If your exam needs permissions
-        iframe.setAttribute('loading', 'lazy');
-        
-        // Handle iframe load
-        iframe.onload = () => {
-            iframe.style.display = 'block';
-        };
-
-        container.appendChild(iframe);
+    // কোডটি সঠিক সময়ে রান করার লজিক
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
     }
 })();
