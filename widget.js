@@ -1,6 +1,6 @@
 (function() {
     // ১. আপনার নতুন ফাংশন URL
-    const VALIDATION_ENDPOINT = 'https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/smooth-worker';
+    const VALIDATION_ENDPOINT = 'https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/smooth-worker/';
 
     const init = () => {
         const container = document.getElementById('examio-widget');
