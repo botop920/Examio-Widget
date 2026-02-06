@@ -1,108 +1,146 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
-
-// Declare Deno to fix TS error in non-Deno environment
-declare const Deno: any;
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-serve(async (req) => {
-  // 1. Handle CORS preflight
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
-  }
-
-  try {
-    // 2. Parse Request
-    const { key, domain, userAgent } = await req.json()
+(function() {
+    // Configuration
+    // REPLACE THIS WITH YOUR DEPLOYED SUPABASE EDGE FUNCTION URL
+    const VALIDATION_ENDPOINT = 'https://YOUR_SUPABASE_PROJECT_ID.supabase.co/functions/v1/validate-widget';
     
-    if (!key) throw new Error("Missing API Key")
-
-    // 3. Init Supabase Admin Client (Service Role)
-    const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    // 4. Validate Key & Fetch Config
-    const { data: keyData, error: keyError } = await supabaseAdmin
-      .from('widget_api_keys')
-      .select(`
-        id, 
-        batch_token, 
-        is_active,
-        widget_clients!inner(is_active)
-      `)
-      .eq('key_value', key)
-      .single()
-
-    if (keyError || !keyData) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid API Key' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // DOM Elements
+    const container = document.getElementById('examio-widget');
+    if (!container) {
+        console.error('EXAMiO Widget: Container element #examio-widget not found.');
+        return;
     }
 
-    if (!keyData.is_active || !keyData.widget_clients.is_active) {
-      return new Response(
-        JSON.stringify({ error: 'Account or Key is inactive' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const apiKey = container.getAttribute('data-key');
+    if (!apiKey) {
+        renderError('Configuration Error: Missing data-key attribute.');
+        return;
     }
 
-    // 5. Validate Domain (Origin)
-    // In production, 'domain' passed from client is spoofable, 
-    // so we also check the Origin header if available.
-    const origin = req.headers.get('origin')
-    const originHostname = origin ? new URL(origin).hostname : domain;
+    // Styles
+    const style = document.createElement('style');
+    style.textContent = `
+        #examio-widget {
+            width: 100%;
+            min-height: 600px;
+            position: relative;
+            background: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+            font-family: sans-serif;
+        }
+        .examio-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            color: #666;
+        }
+        .examio-spinner {
+            width: 30px;
+            height: 30px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #0071E3;
+            border-radius: 50%;
+            animation: examio-spin 1s linear infinite;
+            margin-bottom: 15px;
+        }
+        .examio-error {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #e53e3e;
+            padding: 20px;
+            text-align: center;
+            background: #fff5f5;
+        }
+        @keyframes examio-spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #examio-frame {
+            width: 100%;
+            height: 100%;
+            min-height: 600px;
+            border: none;
+            display: none; /* Hidden until loaded */
+        }
+    `;
+    document.head.appendChild(style);
 
-    const { data: domainData, error: domainError } = await supabaseAdmin
-      .from('widget_allowed_domains')
-      .select('id')
-      .eq('api_key_id', keyData.id)
-      .eq('domain', originHostname)
-      .maybeSingle()
+    // Initial Loading State
+    renderLoading();
 
-    if (!domainData) {
-      return new Response(
-        JSON.stringify({ error: `Domain not allowed: ${originHostname}` }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    // Validate and Load
+    validateAndLoad();
+
+    function validateAndLoad() {
+        const payload = {
+            key: apiKey,
+            domain: window.location.hostname,
+            userAgent: navigator.userAgent
+        };
+
+        fetch(VALIDATION_ENDPOINT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.examUrl) {
+                renderIframe(data.examUrl);
+            } else {
+                renderError(data.error || 'Access Denied');
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            renderError('Connection Error: Unable to load widget.');
+        });
     }
 
-    // 6. Log Usage (Async - don't await strictly to speed up response)
-    supabaseAdmin
-      .from('widget_usage_logs')
-      .insert({
-        api_key_id: keyData.id,
-        domain: originHostname,
-        user_agent: userAgent,
-        ip_address: req.headers.get('x-forwarded-for') || 'unknown'
-      })
-      .then(({ error }) => { if (error) console.error('Log error:', error) })
+    function renderLoading() {
+        container.innerHTML = `
+            <div class="examio-loading">
+                <div class="examio-spinner"></div>
+                <span>Loading Exam...</span>
+            </div>
+        `;
+    }
 
-    // 7. Return Success & Exam URL
-    // Construct the actual URL your React app uses
-    // Assuming your main app is hosted at the SUPABASE_URL origin or a specific domain
-    const appUrl = "https://www.examio.xyz"; // Replace with your actual production URL
-    const examUrl = `${appUrl}/?batch_token=${keyData.batch_token}&embed=true`;
+    function renderError(message) {
+        container.innerHTML = `
+            <div class="examio-error">
+                <div>
+                    <strong>EXAMiO Error</strong><br/>
+                    ${message}
+                </div>
+            </div>
+        `;
+    }
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        examUrl: examUrl 
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    function renderIframe(url) {
+        container.innerHTML = ''; // Clear loading
+        
+        const iframe = document.createElement('iframe');
+        iframe.id = 'examio-frame';
+        iframe.src = url;
+        iframe.setAttribute('allow', 'camera; microphone'); // If your exam needs permissions
+        iframe.setAttribute('loading', 'lazy');
+        
+        // Handle iframe load
+        iframe.onload = () => {
+            iframe.style.display = 'block';
+        };
 
-  } catch (error) {
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
-  }
-})
+        container.appendChild(iframe);
+    }
+})();
