@@ -1,6 +1,7 @@
 (async () => {
 
-  const script = document.currentScript;
+  const scripts = document.getElementsByTagName("script");
+  const script = scripts[scripts.length - 1];
 
   const embedToken = script.getAttribute("data-embed-token");
   const batchToken = script.getAttribute("data-batch-token");
