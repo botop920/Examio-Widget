@@ -1,61 +1,59 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <title>Examio Widget</title>
+</head>
 <body>
 
-<h3>Examio Debug Loader</h3>
+<div id="app">Loading Exam...</div>
 
 <script>
 (async function() {
 
-  try {
+  const params = new URLSearchParams(window.location.search);
 
-    console.log("Widget loaded");
+  const embedToken = params.get("embed_token");
+  const batchToken = params.get("batch_token");
 
-    const params = new URLSearchParams(window.location.search);
+  const referrer = document.referrer;
 
-    const embedToken = params.get("embed_token");
-    const batchToken = params.get("batch_token");
-
-    console.log("Embed:", embedToken);
-    console.log("Batch:", batchToken);
-
-    const referrer = document.referrer;
-
-    console.log("Referrer:", referrer);
-
-    const res = await fetch(
-      "https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/verify-embed",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: embedToken,
-          referrer,
-        }),
-      }
-    );
-
-    const data = await res.json();
-
-    console.log("Verify result:", data);
-
-    if (!data.allow) {
-      document.body.innerHTML += "<p>Blocked ❌</p>";
-      return;
-    }
-
-    const iframe = document.createElement("iframe");
-
-    iframe.src = `https://www.examio.xyz/?batch_token=${batchToken}&embed=true`;
-
-    iframe.style.width = "100%";
-    iframe.style.height = "700px";
-
-    document.body.appendChild(iframe);
-
-  } catch (e) {
-    console.error("Loader error:", e);
+  if (!embedToken || !batchToken || !referrer) {
+    document.body.innerHTML = "Access Denied ❌";
+    return;
   }
+
+  const res = await fetch(
+    "https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/verify-embed",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        token: embedToken,
+        referrer,
+      }),
+    }
+  );
+
+  const data = await res.json();
+
+  if (!data.allow) {
+    document.body.innerHTML = "Embed not allowed ❌";
+    return;
+  }
+
+  // ✅ Load real exam portal
+  const iframe = document.createElement("iframe");
+
+  iframe.src = `https://www.examio.xyz/?batch_token=${batchToken}&embed=true`;
+
+  iframe.style.width = "100%";
+  iframe.style.height = "100vh";
+  iframe.style.border = "none";
+
+  document.body.innerHTML = "";
+  document.body.appendChild(iframe);
 
 })();
 </script>
