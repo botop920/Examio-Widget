@@ -2,6 +2,8 @@
 <html>
 <body>
 
+<p>Loading Exam...</p>
+
 <script>
 (async function () {
 
@@ -9,44 +11,59 @@
 
   const embedToken = params.get("embed_token");
   const batchToken = params.get("batch_token");
-  const domain = params.get("domain");
 
-  if (!embedToken || !batchToken || !domain) {
+  if (!embedToken || !batchToken) {
     document.body.innerHTML = "Access denied ❌";
     return;
   }
 
-  const res = await fetch(
-    "https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/verify-embed",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2anRxcW54dHJieGVvempyc2t1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3MDc3MzEsImV4cCI6MjA4NTI4MzczMX0.Kfn2VXculf1SMWkaleOIM9qRraOzoNmsTnD8HKPirO4"
-      },
-      body: JSON.stringify({
-        token: embedToken,
-        referrer: "https://" + domain
-      })
+  // Wait parent domain
+  window.addEventListener("message", async (event) => {
+
+    const parentDomain = event.data.domain;
+
+    if (!parentDomain) return;
+
+    try {
+
+      const res = await fetch(
+        "https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/verify-embed",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2anRxcW54dHJieGVvempyc2t1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3MDc3MzEsImV4cCI6MjA4NTI4MzczMX0.Kfn2VXculf1SMWkaleOIM9qRraOzoNmsTnD8HKPirO4"
+          },
+          body: JSON.stringify({
+            token: embedToken,
+            referrer: "https://" + parentDomain
+          })
+        }
+      );
+
+      const data = await res.json();
+
+      if (!data.allow) {
+        document.body.innerHTML = "Embed not allowed ❌";
+        return;
+      }
+
+      const iframe = document.createElement("iframe");
+
+      iframe.src = `https://www.examio.xyz/?batch_token=${batchToken}&embed=true`;
+
+      iframe.style.width = "100%";
+      iframe.style.height = "100vh";
+      iframe.style.border = "none";
+
+      document.body.innerHTML = "";
+      document.body.appendChild(iframe);
+
+    } catch {
+      document.body.innerHTML = "Loader error ❌";
     }
-  );
 
-  const data = await res.json();
-
-  if (!data.allow) {
-    document.body.innerHTML = "Embed not allowed ❌";
-    return;
-  }
-
-  const iframe = document.createElement("iframe");
-
-  iframe.src = `https://www.examio.xyz/?batch_token=${batchToken}&embed=true`;
-
-  iframe.style.width = "100%";
-  iframe.style.height = "100vh";
-  iframe.style.border = "none";
-
-  document.body.appendChild(iframe);
+  });
 
 })();
 </script>
