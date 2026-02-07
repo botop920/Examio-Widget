@@ -2,7 +2,7 @@
 <html>
 <body>
 
-<p>Loading Exam...</p>
+<h3>Examio Debug Loader</h3>
 
 <script>
 (async function () {
@@ -12,19 +12,18 @@
   const embedToken = params.get("embed_token");
   const batchToken = params.get("batch_token");
 
-  if (!embedToken || !batchToken) {
-    document.body.innerHTML = "Access denied ❌";
-    return;
-  }
+  document.body.innerHTML += `<p>Token: ${embedToken}</p>`;
+  document.body.innerHTML += `<p>Batch: ${batchToken}</p>`;
 
-  // Wait parent domain
   window.addEventListener("message", async (event) => {
 
-    const parentDomain = event.data.domain;
-
-    if (!parentDomain) return;
-
     try {
+
+      const parentDomain = event.data.domain;
+
+      document.body.innerHTML += `<p>Domain received: ${parentDomain}</p>`;
+
+      if (!parentDomain) return;
 
       const res = await fetch(
         "https://lvjtqqnxtrbxeozjrsku.supabase.co/functions/v1/verify-embed",
@@ -43,24 +42,28 @@
 
       const data = await res.json();
 
+      document.body.innerHTML += `<p>Verify result: ${JSON.stringify(data)}</p>`;
+
       if (!data.allow) {
-        document.body.innerHTML = "Embed not allowed ❌";
+        document.body.innerHTML += "<p>Blocked ❌</p>";
         return;
       }
+
+      document.body.innerHTML += "<p>Loading exam...</p>";
 
       const iframe = document.createElement("iframe");
 
       iframe.src = `https://www.examio.xyz/?batch_token=${batchToken}&embed=true`;
 
       iframe.style.width = "100%";
-      iframe.style.height = "100vh";
-      iframe.style.border = "none";
+      iframe.style.height = "700px";
 
-      document.body.innerHTML = "";
       document.body.appendChild(iframe);
 
-    } catch {
-      document.body.innerHTML = "Loader error ❌";
+    } catch (e) {
+
+      document.body.innerHTML += `<p style="color:red">CRASH: ${e}</p>`;
+
     }
 
   });
@@ -70,3 +73,4 @@
 
 </body>
 </html>
+
