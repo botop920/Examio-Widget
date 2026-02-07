@@ -21,11 +21,5 @@
         }
       ]
     }
-  ],
-  "rewrites": [
-    {
-      "source": "/widget.js",
-      "destination": "/widget.js"
-    }
   ]
 }
