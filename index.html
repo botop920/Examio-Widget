@@ -2,14 +2,14 @@
 <html>
 <body>
 
-<h3>Examio Loader</h3>
+<h3>Examio Loader Debug</h3>
 
 <script>
 (async function () {
 
   try {
 
-    console.log("Loader started");
+    document.body.innerHTML += "<p>Loader started</p>";
 
     const params = new URLSearchParams(window.location.search);
 
@@ -18,12 +18,12 @@
 
     const referrer = document.referrer;
 
-    console.log("Embed token:", embedToken);
-    console.log("Batch token:", batchToken);
-    console.log("Referrer:", referrer);
+    document.body.innerHTML += `<p>Embed: ${embedToken}</p>`;
+    document.body.innerHTML += `<p>Batch: ${batchToken}</p>`;
+    document.body.innerHTML += `<p>Referrer: ${referrer}</p>`;
 
     if (!embedToken || !batchToken) {
-      document.body.innerHTML = "Missing tokens ❌";
+      document.body.innerHTML += "<p>Missing tokens ❌</p>";
       return;
     }
 
@@ -44,28 +44,27 @@
 
     const data = await res.json();
 
-    console.log("Verify result:", data);
+    document.body.innerHTML += `<p>Verify: ${JSON.stringify(data)}</p>`;
 
     if (!data.allow) {
-      document.body.innerHTML = "Embed not allowed ❌";
+      document.body.innerHTML += "<p>Embed not allowed ❌</p>";
       return;
     }
+
+    document.body.innerHTML += "<p>Loading exam...</p>";
 
     const iframe = document.createElement("iframe");
 
     iframe.src = `https://www.examio.xyz/?batch_token=${batchToken}&embed=true`;
 
     iframe.style.width = "100%";
-    iframe.style.height = "100vh";
-    iframe.style.border = "none";
+    iframe.style.height = "700px";
 
-    document.body.innerHTML = "";
     document.body.appendChild(iframe);
 
   } catch (e) {
 
-    console.error("Loader crashed:", e);
-    document.body.innerHTML = "Loader crashed ❌";
+    document.body.innerHTML += `<p style="color:red">CRASH: ${e}</p>`;
 
   }
 
