@@ -1,6 +1,7 @@
 (async function () {
 
-  const scriptTag = document.currentScript;
+  const scripts = document.getElementsByTagName("script");
+  const scriptTag = scripts[scripts.length - 1];
 
   const embedToken = scriptTag.getAttribute("data-embed-token");
   const batchToken = scriptTag.getAttribute("data-batch-token");
@@ -33,7 +34,6 @@
     return;
   }
 
-  // ✅ Allowed হলে batch wise exam load হবে
   const iframe = document.createElement("iframe");
 
   iframe.src = `https://www.examio.xyz/?batch_token=${batchToken}&embed=true`;
