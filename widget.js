@@ -1,14 +1,23 @@
 (async function () {
 
+  console.log("Examio widget loaded");
+
   const scriptTag = document.currentScript;
+
+  console.log("Script tag:", scriptTag);
 
   const embedToken = scriptTag?.getAttribute("data-embed-token");
   const batchToken = scriptTag?.getAttribute("data-batch-token");
 
+  console.log("Embed token:", embedToken);
+  console.log("Batch token:", batchToken);
+
   const referrer = document.referrer;
 
+  console.log("Referrer:", referrer);
+
   if (!embedToken || !batchToken || !referrer) {
-    console.error("Examio: Access denied");
+    console.error("Examio: Access denied early");
     return;
   }
 
@@ -28,16 +37,14 @@
 
   const data = await res.json();
 
+  console.log("Verify result:", data);
+
   if (!data.allow) {
     console.error("Examio: Embed not allowed");
     return;
   }
 
-  // ⭐ NEW: container create করবো
-  const container = document.createElement("div");
-  container.id = "examio-widget-container";
-
-  scriptTag.insertAdjacentElement("afterend", container);
+  console.log("Creating iframe...");
 
   const iframe = document.createElement("iframe");
 
@@ -47,6 +54,6 @@
   iframe.style.height = "700px";
   iframe.style.border = "none";
 
-  container.appendChild(iframe);
+  document.body.appendChild(iframe);
 
 })();
