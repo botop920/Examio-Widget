@@ -3,22 +3,19 @@
 <head>
   <title>Examio Widget</title>
 </head>
+
 <body>
 
-<div id="app">Loading Exam...</div>
-
 <script>
-(async function() {
+(async function () {
 
   const params = new URLSearchParams(window.location.search);
 
   const embedToken = params.get("embed_token");
   const batchToken = params.get("batch_token");
 
-  const referrer = document.referrer;
-
-  if (!embedToken || !batchToken || !referrer) {
-    document.body.innerHTML = "Access Denied ❌";
+  if (!embedToken || !batchToken) {
+    document.body.innerHTML = "Access denied ❌";
     return;
   }
 
@@ -28,11 +25,12 @@
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Authorization": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2anRxcW54dHJieGVvempyc2t1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njk3MDc3MzEsImV4cCI6MjA4NTI4MzczMX0.Kfn2VXculf1SMWkaleOIM9qRraOzoNmsTnD8HKPirO4"
       },
       body: JSON.stringify({
         token: embedToken,
-        referrer,
-      }),
+        referrer: document.referrer
+      })
     }
   );
 
@@ -43,7 +41,6 @@
     return;
   }
 
-  // ✅ Load real exam portal
   const iframe = document.createElement("iframe");
 
   iframe.src = `https://www.examio.xyz/?batch_token=${batchToken}&embed=true`;
@@ -52,7 +49,6 @@
   iframe.style.height = "100vh";
   iframe.style.border = "none";
 
-  document.body.innerHTML = "";
   document.body.appendChild(iframe);
 
 })();
